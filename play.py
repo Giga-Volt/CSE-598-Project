@@ -11,6 +11,7 @@ from PIL import ImageGrab
 import win32gui
 import win32api
 import win32con
+import win32com.client
 import time
 
 # Detect the game window
@@ -27,6 +28,10 @@ for (hwnd, win_text) in windows_list:
     if "slither.io" in win_text:
         game_hwnd = hwnd
 
+# Set foreground
+shell = win32com.client.Dispatch("WScript.Shell")
+shell.SendKeys('%')
+win32gui.SetForegroundWindow(game_hwnd)
 while True:
     position = win32gui.GetWindowRect(game_hwnd)
     # Take screenshot
@@ -37,7 +42,7 @@ while True:
     
     # Simulate keyboard input
     win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
-    time.sleep(0.5)
+    time.sleep(0.1)
     win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
     
     key = cv2.waitKey(25)
