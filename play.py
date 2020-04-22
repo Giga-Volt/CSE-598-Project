@@ -34,11 +34,14 @@ shell.SendKeys('%')
 win32gui.SetForegroundWindow(game_hwnd)
 while True:
     position = win32gui.GetWindowRect(game_hwnd)
-    # Take screenshot
-    screenshot = ImageGrab.grab(position)
-    screenshot = np.array(screenshot)
-    screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
-    cv2.imshow("Screen", screenshot)
+    # Take screenshot and process the image
+    raw = ImageGrab.grab(position)
+    raw = np.array(raw)
+    #processed_image = raw[]
+    processed_image = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
+    (height, width) = processed_image.shape
+    processed_image = processed_image[111:height-8, 8:width-8]
+    cv2.imshow("Processed Image", processed_image)
     
     # Simulate keyboard input
     win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
