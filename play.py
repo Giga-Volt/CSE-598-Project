@@ -14,6 +14,23 @@ import win32con
 import win32com.client
 import time
 
+def process_image(raw):
+    processed_image = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
+    (height, width) = processed_image.shape
+    processed_image = processed_image[111:height-8, 8:width-8]
+    (height, width) = processed_image.shape
+    if height < width:
+        difference = width - height
+        reduction = int(difference / 2)
+        processed_image = processed_image[:,reduction:width-reduction]
+    elif width < height:
+        difference = width - height
+        reduction = int(difference / 2)
+        processed_image = processed_image[reduction:height-reduction,:]
+    dim = (50, 50)
+    processed_image = cv2.resize(processed_image, dim, interpolation=cv2.INTER_LANCZOS4)
+    return processed_image
+
 # Detect the game window
 windows_list = []
 toplist = []
@@ -37,10 +54,8 @@ while True:
     # Take screenshot and process the image
     raw = ImageGrab.grab(position)
     raw = np.array(raw)
-    #processed_image = raw[]
-    processed_image = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
-    (height, width) = processed_image.shape
-    processed_image = processed_image[111:height-8, 8:width-8]
+    processed_image = process_image(raw)
+    
     cv2.imshow("Processed Image", processed_image)
     
     # Simulate keyboard input
