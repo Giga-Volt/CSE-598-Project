@@ -29,6 +29,17 @@ def process_image(raw):
         processed_image = processed_image[reduction:height-reduction,:]
     dim = (50, 50)
     processed_image = cv2.resize(processed_image, dim, interpolation=cv2.INTER_LANCZOS4)
+    for i in range(50):
+        for j in range(50):
+            value = processed_image[i][j]
+            if value <= 63:
+                processed_image[i][j] = 0
+            elif value <= 127:
+                processed_image[i][j] = 96
+            elif value <= 191:
+                processed_image[i][j] = 160
+            else:
+                processed_image[i][j] = 255
     return processed_image
 
 # Detect the game window
