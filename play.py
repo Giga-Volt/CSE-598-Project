@@ -27,10 +27,11 @@ def process_image(raw):
         difference = width - height
         reduction = int(difference / 2)
         processed_image = processed_image[reduction:height-reduction,:]
-    dim = (50, 50)
+    height = width = 50
+    dim = (height, width)
     processed_image = cv2.resize(processed_image, dim, interpolation=cv2.INTER_LANCZOS4)
-    for i in range(50):
-        for j in range(50):
+    for i in range(height):
+        for j in range(width):
             value = processed_image[i][j]
             if value <= 63:
                 processed_image[i][j] = 0
@@ -66,6 +67,9 @@ while True:
     raw = ImageGrab.grab(position)
     raw = np.array(raw)
     processed_image = process_image(raw)
+    
+    dim = (408, 408)
+    processed_image = cv2.resize(processed_image, dim, interpolation=cv2.INTER_NEAREST)
     
     cv2.imshow("Processed Image", processed_image)
     
