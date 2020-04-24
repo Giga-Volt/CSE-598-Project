@@ -43,7 +43,23 @@ def process_image(raw):
                 processed_image[i][j] = 255
     return processed_image
 
-game_hwnd = launchGame();
+def isEnd(browser):
+    return False
+
+def currentScore(browser):
+    # Get current score
+    html = browser.page_source
+    start = 'Your length: </span><span style="opacity: .8; font-weight: bold;">'
+    end = '</span></span><br><span style="opacity: .3;">'
+    index1 = html.find(start)
+    index2 = html.find(end)
+    if index1 == -1 or index2 == -1:
+        return
+    n = len(start)
+    score = int(html[index1+n:index2])
+    return score
+
+browser, game_hwnd = launchGame();
 
 while True:
     position = win32gui.GetWindowRect(game_hwnd)
@@ -52,8 +68,10 @@ while True:
     raw = np.array(raw)
     processed_image = process_image(raw)
     
-    dim = (408, 408)
-    processed_image = cv2.resize(processed_image, dim, interpolation=cv2.INTER_NEAREST)
+    print(isEnd(browser))
+    
+    #dim = (408, 408)
+    #display = cv2.resize(processed_image, dim, interpolation=cv2.INTER_NEAREST)
     
     cv2.imshow("Processed Image", processed_image)
     
