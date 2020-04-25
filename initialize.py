@@ -13,8 +13,7 @@ import win32con
 import time
 
 def launchGame():
-    driver_path = 'C:\\Users/gvich/Downloads/chromedriver_win32/chromedriver'
-    browser = webdriver.Chrome(executable_path=driver_path)
+    browser = webdriver.Chrome()
     browser.get('http://slither.io/')
     
     browser.set_window_size(900, 550)

@@ -17,7 +17,7 @@ from initialize import launchGame
 def process_image(raw):
     processed_image = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
     (height, width) = processed_image.shape
-    processed_image = processed_image[111:height-8, 8:width-8]
+    processed_image = processed_image[124:height-8, 8:width-8]
     (height, width) = processed_image.shape
     if height < width:
         difference = width - height
@@ -43,8 +43,20 @@ def process_image(raw):
                 processed_image[i][j] = 255
     return processed_image
 
-def isEnd(browser):
+def isEnd(processed_image):
+    if np.array_equal(processed_image, end_screen):
+        return True
     return False
+
+def lastScore(browser):
+    html = browser.page_source
+    start = 'Your final length was </span><b>'
+    end = '</b></div>'
+    index1 = html.find(start)
+    index2 = html.find(end)
+    n = len(start)
+    score = int(html[index1+n:index2])
+    return score
 
 def currentScore(browser):
     # Get current score
@@ -59,6 +71,8 @@ def currentScore(browser):
     score = int(html[index1+n:index2])
     return score
 
+end_screen = np.load('end_screen.npy')
+
 browser, game_hwnd = launchGame();
 
 while True:
@@ -68,20 +82,24 @@ while True:
     raw = np.array(raw)
     processed_image = process_image(raw)
     
-    print(isEnd(browser))
+    if isEnd(processed_image):
+        print('Last Score:', lastScore(browser))
+        break
     
-    #dim = (408, 408)
-    #display = cv2.resize(processed_image, dim, interpolation=cv2.INTER_NEAREST)
+    dim = (418, 418)
+    display = cv2.resize(processed_image, dim, interpolation=cv2.INTER_NEAREST)
     
-    cv2.imshow("Processed Image", processed_image)
+    cv2.imshow("Processed Image", display)
+    
+    score = currentScore(browser)
+    if score != None:
+        print(score)
     
     # Simulate keyboard input
     win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
     time.sleep(0.1)
     win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
     
-    key = cv2.waitKey(25)
-    if key == 27:
-        break
+    cv2.waitKey(25)
 
 cv2.destroyAllWindows()
