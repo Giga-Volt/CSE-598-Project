@@ -13,6 +13,7 @@ import cv2
 from PIL import ImageGrab
 import time
 from initialize import launchGame
+from score import currentScore, lastScore
 
 def process_image(raw):
     processed_image = cv2.cvtColor(raw, cv2.COLOR_RGB2GRAY)
@@ -44,36 +45,21 @@ def process_image(raw):
     return processed_image
 
 def isEnd(processed_image):
-    if np.array_equal(processed_image, end_screen):
+    matcher = np.copy(processed_image)
+    matcher[20,:] = 0
+    if np.array_equal(matcher, end_screen):
         return True
     return False
 
-def lastScore(browser):
-    html = browser.page_source
-    start = 'Your final length was </span><b>'
-    end = '</b></div>'
-    index1 = html.find(start)
-    index2 = html.find(end)
-    n = len(start)
-    score = int(html[index1+n:index2])
-    return score
-
-def currentScore(browser):
-    # Get current score
-    html = browser.page_source
-    start = 'Your length: </span><span style="opacity: .8; font-weight: bold;">'
-    end = '</span></span><br><span style="opacity: .3;">'
-    index1 = html.find(start)
-    index2 = html.find(end)
-    if index1 == -1 or index2 == -1:
-        return
-    n = len(start)
-    score = int(html[index1+n:index2])
-    return score
+def sigmoid(y):
+    z = 1 / (1 + np.exp(-y))
+    return z
 
 end_screen = np.load('end_screen.npy')
 
 browser, game_hwnd = launchGame();
+
+w = np.random.uniform(-1, 1, (2500, 3))
 
 while True:
     position = win32gui.GetWindowRect(game_hwnd)
@@ -95,10 +81,27 @@ while True:
     if score != None:
         print(score)
     
+    x = np.reshape(processed_image, (1, 2500))
+    y = sigmoid(x @ w)
+    
     # Simulate keyboard input
-    win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
-    time.sleep(0.1)
-    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
+    if y[0,0] < 0.5:
+        win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
+    else:
+        win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
+    if y[0,1] >= 0.5 and y[0,2] >= 0.5:
+        if y[0,1] > y[0,2]:
+            win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
+        else:
+            win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
+    elif y[0,1] >= 0.5:
+        win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
+    elif y[0,2] >= 0.5:
+        win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
+    if y[0,1] < 0.5:
+        win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RIGHT)
+    if y[0,2] < 0.5:
+        win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_LEFT)
     
     cv2.waitKey(25)
 
