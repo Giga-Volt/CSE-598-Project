@@ -42,6 +42,4 @@ def launchGame():
     win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN)
     win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RETURN)
     
-    #time.sleep(1)
-    
     return browser, game_hwnd
