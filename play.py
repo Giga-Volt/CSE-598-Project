@@ -13,16 +13,17 @@ import cv2
 from PIL import ImageGrab
 import neat
 import os
+import pickle
 from initialize import launchGame
 from score import currentScore, lastScore
 from image_processor import process_image
 
 def main(genomes, config):
     for _, g in genomes:
-        net = neat.nn.FeedForwardNetwork.create(g, config)
-        g.fitness = evalGenome(net, browser, game_hwnd)
         win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN)
         win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RETURN)
+        net = neat.nn.FeedForwardNetwork.create(g, config)
+        g.fitness = evalGenome(net, browser, game_hwnd)
 
 def evalGenome(net, browser, game_hwnd):
     def isEnd(processed_image):
@@ -63,22 +64,22 @@ def evalGenome(net, browser, game_hwnd):
         y = net.activate(x)
         
         # Simulate keyboard input
-        if y[0] < 0.5:
+        if y[0] < 0:
             win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
         else:
             win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
-        if y[1] >= 0.5 and y[2] >= 0.5:
+        if y[1] >= 0 and y[2] >= 0:
             if y[1] > y[2]:
                 win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
             else:
                 win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
-        elif y[1] >= 0.5:
+        elif y[1] >= 0:
             win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
-        elif y[2] >= 0.5:
+        elif y[2] >= 0:
             win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
-        if y[1] < 0.5:
+        if y[1] < 0:
             win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RIGHT)
-        if y[2] < 0.5:
+        if y[2] < 0:
             win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_LEFT)
         
         cv2.waitKey(25)
@@ -95,7 +96,12 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
     
-    winner = p.run(main, 50)
+    winner = p.run(main, 20)
+    
+    filename = 'best'
+    outfile = open(filename,'wb')
+    pickle.dump(winner, outfile)
+    outfile.close()
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)

@@ -39,7 +39,7 @@ def launchGame():
     
     input('Enter a name and change the snake to white. Then give an input:')
     time.sleep(10)
-    win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN)
-    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RETURN)
+    #win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN)
+    #win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RETURN)
     
     return browser, game_hwnd
