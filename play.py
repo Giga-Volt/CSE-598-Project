@@ -16,7 +16,30 @@ import os
 import pickle
 from initialize import launchGame
 from score import currentScore, lastScore
-from image_processor import process_image
+from image_processor import process_image, get_matcher
+
+def pressUp(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
+
+def pressRight(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
+
+def pressLeft(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
+
+def releaseUp(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
+
+def releaseRight(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RIGHT)
+
+def releaseLeft(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_LEFT)
+
+def releaseAll(game_hwnd):
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RIGHT)
+    win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_LEFT)
 
 def main(genomes, config):
     for _, g in genomes:
@@ -26,8 +49,8 @@ def main(genomes, config):
         g.fitness = evalGenome(net, browser, game_hwnd)
 
 def evalGenome(net, browser, game_hwnd):
-    def isEnd(processed_image):
-        matcher = np.copy(processed_image)
+    def isEnd(raw):
+        matcher = get_matcher(raw)
         matcher[20,:] = 0
         if np.array_equal(matcher, end_screen):
             return True
@@ -37,7 +60,8 @@ def evalGenome(net, browser, game_hwnd):
         z = 1 / (1 + np.exp(-y))
         return z
     
-    end_screen = np.load('end_screen.npy')
+    suicide = False
+    scores = []
     
     while True:
         position = win32gui.GetWindowRect(game_hwnd)
@@ -46,7 +70,7 @@ def evalGenome(net, browser, game_hwnd):
         raw = np.array(raw)
         processed_image = process_image(raw)
         
-        if isEnd(processed_image):
+        if isEnd(raw):
             break
         
         #dim = (418, 418)
@@ -56,34 +80,47 @@ def evalGenome(net, browser, game_hwnd):
         score = currentScore(browser)
         if score != None:
             #print(score)
+            if len(scores) == 300:
+                scores = scores[1:300]
+            scores.append(score)
             pass
         
-        x = processed_image.flatten().tolist()
-        #y = sigmoid(x @ w)
+        if len(scores) == 300:
+            scoresArray = np.array(scores)
+            if np.std(scoresArray) < 1:
+                suicide = True
         
-        y = net.activate(x)
-        
-        # Simulate keyboard input
-        if y[0] < 0:
-            win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_UP)
+        if suicide:
+            releaseAll(game_hwnd)
         else:
-            win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_UP)
-        if y[1] >= 0 and y[2] >= 0:
-            if y[1] > y[2]:
-                win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
+            x = processed_image.flatten()
+            x = x - 128
+            x = x.tolist()
+            
+            y = net.activate(x)
+            
+            # Simulate keyboard input
+            if y[0] < 0:
+                releaseUp(game_hwnd)
             else:
-                win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
-        elif y[1] >= 0:
-            win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_RIGHT)
-        elif y[2] >= 0:
-            win32api.SendMessage(game_hwnd, win32con.WM_KEYDOWN, win32con.VK_LEFT)
-        if y[1] < 0:
-            win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_RIGHT)
-        if y[2] < 0:
-            win32api.SendMessage(game_hwnd, win32con.WM_KEYUP, win32con.VK_LEFT)
+                pressUp(game_hwnd)
+            if y[1] >= 0 and y[2] >= 0:
+                if y[1] > y[2]:
+                    pressRight(game_hwnd)
+                else:
+                    pressLeft(game_hwnd)
+            elif y[1] >= 0:
+                pressRight(game_hwnd)
+            elif y[2] >= 0:
+                pressLeft(game_hwnd)
+            if y[1] < 0:
+                releaseRight(game_hwnd)
+            if y[2] < 0:
+                releaseLeft(game_hwnd)
         
         cv2.waitKey(25)
     
+    releaseAll(game_hwnd)
     cv2.destroyAllWindows()
     return lastScore(browser)
 
@@ -96,7 +133,7 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
     
-    winner = p.run(main, 20)
+    winner = p.run(main, 1)
     
     filename = 'best'
     outfile = open(filename,'wb')
@@ -106,5 +143,6 @@ def run(config_path):
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, "config-feedforward.txt")
+    end_screen = np.load('end_screen.npy')
     browser, game_hwnd = launchGame();
     run(config_path)
